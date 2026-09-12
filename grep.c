@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -42,29 +41,65 @@ void search_pattern_regex(FILE *file, const char* pattern)
 	regfree(&regex);
 }
 
+void search_pattern_case_sens()
+{
+
+}
+
 int main(int argc, char* argv[])
 {
-	if(argc < 3)
+	if(argc < 3 || argc > 4)
 	{
-		printf("Usage: %s <pattern> <filename>\n", argv[0]);
+		printf("Usage: %s [flag] <pattern> <filename>\n", argv[0]);
 		return 1;
 	}
-
-	FILE *file = fopen(argv[2], "r");
-	if(!file)
-	{
-		printf("ERROR: couldn't open file");
-		return 1;
-	}
-
-	printf("Simple grep (non-regex):\n");
 	
-	search_pattern(file, argv[1]);
+	if(argc == 3)
+	{
+		FILE *file = fopen(argv[2], "r");
 
-	rewind(file);
-	printf("\nGrep with regex:\n");
-	search_pattern_regex(file, argv[1]);
+		if(!file)
+		{
+			printf("ERROR: Couldn't open file\n");
+			return 1;
+		}
 
-	fclose(file);
-	return 0;
+		printf("Simple grep (non-regex):\n");
+		
+		search_pattern(file, argv[1]);
+
+		rewind(file);
+		printf("\nGrep with regex:\n");
+		search_pattern_regex(file, argv[1]);
+
+		fclose(file);
+		return 0;
+	}
+	else
+	{
+		FILE *file = fopen(argv[3], "r");
+		
+		if(!file)
+		{
+			printf("ERROR: Couldn't open file");
+			return 1;
+		}
+
+		if(argv[1][0] != '-')
+		{
+			printf("ERROR: Incorrect flag use '-'\n");
+			return 1;
+
+		}
+
+		if(argv[1][1] == 'c')
+		{
+			search_pattern_case_sens();
+		}
+		else
+		{
+			printf("ERROR: Unknown flag\n");
+			return 1;
+		}
+	}
 }

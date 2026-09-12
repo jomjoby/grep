@@ -1,7 +1,8 @@
-LINE 1
-LINE 2
-LINE 3
-TEST
-TEST
-LINE 6
-
+TEST: Line 1
+TEST: Line 2
+TEST: Line 3
+TEST: Line 4
+TEST: Line 5
+INTEGER: 12345
+INTEGER: 67890
+STRING: The quick brown fox jumps over the lazy dog.
