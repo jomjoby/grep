@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
+#include <ctype.h>
 
 void search_pattern(FILE *file, const char* pattern)
 {
@@ -41,26 +42,77 @@ void search_pattern_regex(FILE *file, const char* pattern)
 	regfree(&regex);
 }
 
-void search_pattern_case_sens()
+void search_pattern_case_sens(FILE *file, const char* pattern)
 {
+	char line[1024];
+	char lc_line[1024];
+	char lc_pattern[1024];
+	int line_number = 1;
 
+	strcpy(lc_pattern, pattern);
+
+	for(int i = 0; pattern[i]; i++)
+	{
+		lc_pattern[i] = tolower(pattern[i]);
+	}
+
+	while(fgets(line, sizeof(line), file))
+	{
+		for(int i = 0; line[i]; i++)
+		{
+			lc_line[i] = tolower(line[i]);
+		}
+		if(strstr(lc_line, lc_pattern))
+		{
+			printf("%d: %s", line_number, line);
+		}
+	}
+
+	line_number++;
 }
 
 int main(int argc, char* argv[])
 {
 	if(argc < 3 || argc > 4)
 	{
-		printf("Usage: %s [flag] <pattern> <filename>\n", argv[0]);
+		printf("Usage: %s <flag> <pattern> <filename>\n", argv[0]);
 		return 1;
 	}
-	
-	if(argc == 3)
+
+	if(argc == 4)
+	{
+		FILE *file = fopen(argv[3], "r");
+		
+		if(!file)
+		{
+			printf("ERROR: couldn't open file");
+			return 1;
+		}
+
+		if(argv[1][0] == '-')
+		{
+			if(argv[1][1] == 'c')
+			{
+				search_pattern_case_sens(file, argv[2]);
+			}
+			else
+			{
+				printf("ERROR: incorrect flag");
+			}
+		}
+		else 
+		{
+			printf("Usage: %s <flag> <pattern> <filename>\n", argv[0]);
+			return 1;
+		}
+	}
+	else
 	{
 		FILE *file = fopen(argv[2], "r");
 
 		if(!file)
 		{
-			printf("ERROR: Couldn't open file\n");
+			printf("ERROR: couldn't open file");
 			return 1;
 		}
 
@@ -75,31 +127,5 @@ int main(int argc, char* argv[])
 		fclose(file);
 		return 0;
 	}
-	else
-	{
-		FILE *file = fopen(argv[3], "r");
-		
-		if(!file)
-		{
-			printf("ERROR: Couldn't open file");
-			return 1;
-		}
 
-		if(argv[1][0] != '-')
-		{
-			printf("ERROR: Incorrect flag use '-'\n");
-			return 1;
-
-		}
-
-		if(argv[1][1] == 'c')
-		{
-			search_pattern_case_sens();
-		}
-		else
-		{
-			printf("ERROR: Unknown flag\n");
-			return 1;
-		}
-	}
 }
