@@ -95,6 +95,10 @@ int main(int argc, char* argv[])
 			{
 				search_pattern_case_sens(file, argv[2]);
 			}
+			else if(argv[1][1] == 'r')
+			{
+				search_pattern_regex(file, argv[2]);
+			}
 			else
 			{
 				printf("ERROR: incorrect flag");
@@ -116,13 +120,7 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
-		printf("Simple grep (non-regex):\n");
-		
 		search_pattern(file, argv[1]);
-
-		rewind(file);
-		printf("\nGrep with regex:\n");
-		search_pattern_regex(file, argv[1]);
 
 		fclose(file);
 		return 0;
