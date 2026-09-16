@@ -3,6 +3,11 @@
 #include <string.h>
 #include <regex.h>
 #include <ctype.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <assert.h>
+#include <errno.h>
 
 void search_pattern(FILE *file, const char* pattern)
 {
@@ -71,6 +76,27 @@ void search_pattern_case_sens(FILE *file, const char* pattern)
 	line_number++;
 }
 
+void search_directory(const char* path)
+{
+  DIR *dir = opendir(path);
+
+  if(dir == NULL)
+  {
+    perror("opendir");
+    return;
+  }
+
+  struct dirent *entry;
+  errno = 0;
+
+  while((entry = readdir(dir)) != NULL)
+  {
+    printf("%s\n", entry->d_name);
+  }
+
+  assert(errno == 0);
+}
+
 int main(int argc, char* argv[])
 {
 	if(argc < 3 || argc > 4)
@@ -78,11 +104,13 @@ int main(int argc, char* argv[])
 		printf("Usage: %s <flag> <pattern> <filename>\n", argv[0]);
 		return 1;
 	}
-
+  
+  // If there is a flag
 	if(argc == 4)
 	{
-		FILE *file = fopen(argv[3], "r");
-		
+  		FILE *file = fopen(argv[3], "r");
+    // DIR *dir = readdir(argv[3]);
+
 		if(!file)
 		{
 			printf("ERROR: couldn't open file");
@@ -101,29 +129,63 @@ int main(int argc, char* argv[])
 			}
 			else
 			{
-				printf("ERROR: incorrect flag");
+				printf("ERROR: unknown flag");
+        return 1;
 			}
 		}
 		else 
 		{
-			printf("Usage: %s <flag> <pattern> <filename>\n", argv[0]);
+			printf("Usage: %s [flag] <pattern> <filename>\n", argv[0]);
 			return 1;
 		}
-	}
+
+    struct stat type;
+
+    if(stat(argv[3], &type) != 0)
+    {
+      printf("ERROR: of some kind");
+      return 1;
+    }
+    if(S_ISDIR(type.st_mode))
+    {
+      printf("Is a directory\n");
+      search_directory(argv[3]);
+    }
+    else if(S_ISREG(type.st_mode))
+    {
+      printf("Is a file\n");
+    }
+}
+  // If there isn't a flag
 	else
 	{
-		FILE *file = fopen(argv[2], "r");
+    struct stat type;
 
-		if(!file)
-		{
-			printf("ERROR: couldn't open file");
-			return 1;
-		}
+    if(stat(argv[2], &type) != 0)
+    {
+      printf("ERROR: of some kind");
+      return 1;
+    }
+    if(S_ISDIR(type.st_mode))
+    {
+      search_directory(argv[2]);
+    }
+    else if(S_ISREG(type.st_mode))
+    {
+      FILE *file = fopen(argv[2], "r");
 
-		search_pattern(file, argv[1]);
+      if(!file)
+      {
+        printf("ERROR: couldn't open file");
+        return 1;
+      }
 
-		fclose(file);
-		return 0;
+      search_pattern(file, argv[1]);
+
+      fclose(file);
+    }
+
+  	return 0;
 	}
 
 }
