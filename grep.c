@@ -88,6 +88,7 @@ void search_directory(const char* path, const char* pattern)
   DIR *dir = opendir(path);
   char full_path[1024];
   char org_path[1024];
+  char file_full_path[1024];
 
   strcpy(full_path, path);
 
@@ -108,6 +109,7 @@ void search_directory(const char* path, const char* pattern)
     }
     if(entry->d_type == DT_DIR)
     {
+      printf("full_path: %s\n", full_path);
       strcpy(org_path, full_path);
       strcat(full_path, entry->d_name);
       strcat(full_path, "/");
@@ -118,14 +120,19 @@ void search_directory(const char* path, const char* pattern)
     }
     else if(entry->d_type == DT_REG)
     {
-      strcat(full_path, entry->d_name);
-      FILE *file = fopen(full_path , "r");
-      search_pattern(file, pattern, full_path); 
+      printf("full_path: %s\n", full_path);
+      strcpy(file_full_path, full_path);
+      strcat(file_full_path, entry->d_name);
+      FILE *file = fopen(file_full_path , "r");
+      search_pattern(file, pattern, full_path);
+      fclose(file);
     }
     // printf("item: %s\n", entry->d_name);
   }
 
   assert(errno == 0);
+
+  closedir(dir);
 }
 
 int main(int argc, char* argv[])
