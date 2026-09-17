@@ -76,9 +76,18 @@ void search_pattern_case_sens(FILE *file, const char* pattern)
 	line_number++;
 }
 
+// void create_path()
+// {
+//
+// }
+
 void search_directory(const char* path)
 {
   DIR *dir = opendir(path);
+  char full_path[1024];
+  char org_path[1024];
+
+  strcpy(full_path, path);
 
   if(dir == NULL)
   {
@@ -91,7 +100,25 @@ void search_directory(const char* path)
 
   while((entry = readdir(dir)) != NULL)
   {
-    printf("%s\n", entry->d_name);
+    if(strcmp(entry->d_name,".") == 0 || strcmp(entry->d_name, "..") == 0)
+    {
+      continue;
+    }
+    if(entry->d_type == DT_DIR)
+    {
+      strcpy(org_path, full_path);
+      strcat(full_path, entry->d_name);
+      strcat(full_path, "/");
+      // printf("full path: %s\n", full_path);
+      // printf("This is a directory\n");
+      search_directory(full_path);
+      strcpy(full_path, org_path);
+    }
+    else if(entry->d_type == DT_REG)
+    {
+      
+    }
+    printf("item: %s\n", entry->d_name);
   }
 
   assert(errno == 0);
