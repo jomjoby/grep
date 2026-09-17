@@ -9,7 +9,7 @@
 #include <assert.h>
 #include <errno.h>
 
-void search_pattern(FILE *file, const char* pattern)
+void search_pattern(FILE *file, const char* pattern, const char* location)
 {
 	char line[1024];
 	int line_number = 1;
@@ -18,8 +18,15 @@ void search_pattern(FILE *file, const char* pattern)
 	{
 		if(strstr(line, pattern))
 		{
-			printf("%d: %s", line_number, line);
-		}
+      if(location != NULL)
+      {
+        printf("File: %s Line: %d - %s", location, line_number, line);
+		  }
+      else
+      {
+        printf("Line: %d - %s", line_number, line);
+      }
+    }
 		line_number++;
 	}
 }
@@ -76,12 +83,7 @@ void search_pattern_case_sens(FILE *file, const char* pattern)
 	line_number++;
 }
 
-// void create_path()
-// {
-//
-// }
-
-void search_directory(const char* path)
+void search_directory(const char* path, const char* pattern)
 {
   DIR *dir = opendir(path);
   char full_path[1024];
@@ -111,14 +113,16 @@ void search_directory(const char* path)
       strcat(full_path, "/");
       // printf("full path: %s\n", full_path);
       // printf("This is a directory\n");
-      search_directory(full_path);
+      search_directory(full_path, pattern);
       strcpy(full_path, org_path);
     }
     else if(entry->d_type == DT_REG)
     {
-      
+      strcat(full_path, entry->d_name);
+      FILE *file = fopen(full_path , "r");
+      search_pattern(file, pattern, full_path); 
     }
-    printf("item: %s\n", entry->d_name);
+    // printf("item: %s\n", entry->d_name);
   }
 
   assert(errno == 0);
@@ -176,7 +180,7 @@ int main(int argc, char* argv[])
     if(S_ISDIR(type.st_mode))
     {
       printf("Is a directory\n");
-      search_directory(argv[3]);
+      search_directory(argv[3], argv[1]);
     }
     else if(S_ISREG(type.st_mode))
     {
@@ -195,7 +199,7 @@ int main(int argc, char* argv[])
     }
     if(S_ISDIR(type.st_mode))
     {
-      search_directory(argv[2]);
+      search_directory(argv[2], argv[1]);
     }
     else if(S_ISREG(type.st_mode))
     {
@@ -207,7 +211,7 @@ int main(int argc, char* argv[])
         return 1;
       }
 
-      search_pattern(file, argv[1]);
+      search_pattern(file, argv[1], NULL);
 
       fclose(file);
     }
