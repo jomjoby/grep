@@ -78,9 +78,8 @@ void search_pattern_case_sens(FILE *file, const char* pattern)
 		{
 			printf("%d: %s", line_number, line);
 		}
+    line_number++;
 	}
-
-	line_number++;
 }
 
 void search_directory(const char* path, const char* pattern)
@@ -109,7 +108,7 @@ void search_directory(const char* path, const char* pattern)
     }
     if(entry->d_type == DT_DIR)
     {
-      printf("full_path: %s\n", full_path);
+      // printf("full_path: %s\n", full_path);
       strcpy(org_path, full_path);
       strcat(full_path, entry->d_name);
       strcat(full_path, "/");
@@ -120,11 +119,11 @@ void search_directory(const char* path, const char* pattern)
     }
     else if(entry->d_type == DT_REG)
     {
-      printf("full_path: %s\n", full_path);
+      // printf("full_path: %s\n", full_path);
       strcpy(file_full_path, full_path);
       strcat(file_full_path, entry->d_name);
       FILE *file = fopen(file_full_path , "r");
-      search_pattern(file, pattern, full_path);
+      search_pattern(file, pattern, file_full_path);
       fclose(file);
     }
     // printf("item: %s\n", entry->d_name);
@@ -155,28 +154,6 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
-		if(argv[1][0] == '-')
-		{
-			if(argv[1][1] == 'c')
-			{
-				search_pattern_case_sens(file, argv[2]);
-			}
-			else if(argv[1][1] == 'r')
-			{
-				search_pattern_regex(file, argv[2]);
-			}
-			else
-			{
-				printf("ERROR: unknown flag");
-        return 1;
-			}
-		}
-		else 
-		{
-			printf("Usage: %s [flag] <pattern> <filename>\n", argv[0]);
-			return 1;
-		}
-
     struct stat type;
 
     if(stat(argv[3], &type) != 0)
@@ -191,7 +168,30 @@ int main(int argc, char* argv[])
     }
     else if(S_ISREG(type.st_mode))
     {
-      printf("Is a file\n");
+      //printf("Is a file\n");
+
+      if(argv[1][0] == '-')
+      {
+        if(argv[1][1] == 'c')
+        {
+          search_pattern_case_sens(file, argv[2]);
+        }
+        else if(argv[1][1] == 'r')
+        {
+          search_pattern_regex(file, argv[2]);
+        }
+        else
+        {
+          printf("ERROR: unknown flag");
+          return 1;
+        }
+      }
+      else 
+      {
+        printf("Usage: %s [flag] <pattern> <filename>\n", argv[0]);
+        return 1;
+      }
+
     }
 }
   // If there isn't a flag
