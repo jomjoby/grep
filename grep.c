@@ -82,7 +82,30 @@ void search_pattern_case_sens(FILE *file, const char* pattern)
 	}
 }
 
-void search_directory(const char* path, const char* pattern)
+void search_pattern_inverted(FILE *file, const char* pattern, const char* location)
+{
+	char line[1024];
+	int line_number = 1;
+
+	while(fgets(line, sizeof(line), file))
+	{
+		if(!strstr(line, pattern))
+		{
+      if(location != NULL)
+      {
+        printf("File: %s Line: %d - %s", location, line_number, line);
+		  }
+      else
+      {
+        printf("Line: %d - %s", line_number, line);
+      }
+    }
+		line_number++;
+	}
+}
+
+
+void search_directory(const char* path, const char* pattern, char flag)
 {
   DIR *dir = opendir(path);
   char full_path[1024];
@@ -113,8 +136,7 @@ void search_directory(const char* path, const char* pattern)
       strcat(full_path, entry->d_name);
       strcat(full_path, "/");
       // printf("full path: %s\n", full_path);
-      // printf("This is a directory\n");
-      search_directory(full_path, pattern);
+      search_directory(full_path, pattern, '\0');
       strcpy(full_path, org_path);
     }
     else if(entry->d_type == DT_REG)
@@ -123,6 +145,18 @@ void search_directory(const char* path, const char* pattern)
       strcpy(file_full_path, full_path);
       strcat(file_full_path, entry->d_name);
       FILE *file = fopen(file_full_path , "r");
+      if(flag == 'r')
+      {
+        search_pattern_regex(file, pattern);
+      }
+      else if(flag == 'c')
+      {
+        search_pattern_case_sens(file, pattern);
+      }
+      else if(flag == 'v')
+      {
+        search_pattern_inverted(file, pattern, file_full_path);
+      }
       search_pattern(file, pattern, file_full_path);
       fclose(file);
     }
@@ -141,9 +175,10 @@ int main(int argc, char* argv[])
 		printf("Usage: %s <flag> <pattern> <filename>\n", argv[0]);
 		return 1;
 	}
-  
+
   // If there is a flag
-	if(argc == 4)
+  char flag;
+  if(argc == 4)
 	{
   		FILE *file = fopen(argv[3], "r");
     // DIR *dir = readdir(argv[3]);
@@ -163,8 +198,26 @@ int main(int argc, char* argv[])
     }
     if(S_ISDIR(type.st_mode))
     {
-      printf("Is a directory\n");
-      search_directory(argv[3], argv[1]);
+      if(argv[1][0] == '-')
+      {
+        if(argv[1][1])
+        {
+          flag = argv[1][1];
+        }
+        else
+        {
+          printf("ERROR: Incorrect flag");
+          return 1;
+        }
+        if(flag == 'c' || 'r' || 'v')
+        {
+          search_directory(argv[3], argv[2], flag);
+        }
+        else
+        {
+          printf("ERROR: Incorrect flag");
+        }
+      }
     }
     else if(S_ISREG(type.st_mode))
     {
@@ -172,6 +225,7 @@ int main(int argc, char* argv[])
 
       if(argv[1][0] == '-')
       {
+        
         if(argv[1][1] == 'c')
         {
           search_pattern_case_sens(file, argv[2]);
@@ -179,6 +233,10 @@ int main(int argc, char* argv[])
         else if(argv[1][1] == 'r')
         {
           search_pattern_regex(file, argv[2]);
+        }
+        else if(argv[1][1] == 'v')
+        {
+          search_pattern_inverted(file, argv[2], NULL);
         }
         else
         {
@@ -206,7 +264,7 @@ int main(int argc, char* argv[])
     }
     if(S_ISDIR(type.st_mode))
     {
-      search_directory(argv[2], argv[1]);
+      search_directory(argv[2], argv[1], '\0');
     }
     else if(S_ISREG(type.st_mode))
     {
