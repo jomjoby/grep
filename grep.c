@@ -8,6 +8,14 @@
 #include <dirent.h>
 #include <assert.h>
 #include <errno.h>
+#include <pthread.h>
+
+struct search_args
+{
+  FILE *file;
+  const char* pattern;
+  const char* location;
+};
 
 void search_pattern(FILE *file, const char* pattern, const char* location)
 {
@@ -29,6 +37,16 @@ void search_pattern(FILE *file, const char* pattern, const char* location)
     }
 		line_number++;
 	}
+}
+
+void* search_pattern_multi_threaded(void *args)
+{
+
+  struct search_args *arg = args;
+
+  search_pattern(arg->file, arg->pattern, arg->location);
+
+  return NULL;
 }
 
 void search_pattern_regex(FILE *file, const char* pattern)
@@ -111,6 +129,7 @@ void search_directory(const char* path, const char* pattern, char flag)
   char full_path[1024];
   char org_path[1024];
   char file_full_path[1024];
+  pthread_t thread;
 
   strcpy(full_path, path);
 
@@ -157,7 +176,18 @@ void search_directory(const char* path, const char* pattern, char flag)
       {
         search_pattern_inverted(file, pattern, file_full_path);
       }
-      search_pattern(file, pattern, file_full_path);
+      else
+      {
+        struct search_args nor_search_args;
+        nor_search_args.file = file;
+        nor_search_args.pattern = pattern;
+        nor_search_args.location = file_full_path;
+        pthread_create(&thread, NULL, search_pattern_multi_threaded, &nor_search_args);
+        pthread_join(thread, NULL);
+
+        search_pattern(file, pattern, file_full_path);
+      }
+
       fclose(file);
     }
     // printf("item: %s\n", entry->d_name);
@@ -196,62 +226,60 @@ int main(int argc, char* argv[])
       printf("ERROR: of some kind");
       return 1;
     }
+
+    if(argv[1][0] == '-')
+    {
+      if(argv[1][1])
+      {
+        flag = argv[1][1];
+      }
+      else
+      {
+        printf("ERROR: Unknown flag");
+        return 1;
+      }
+    }
+    else 
+    {
+      printf("Usage: %s [flag] <pattern> <filename>\n", argv[0]);
+      return 1;
+    }
+
     if(S_ISDIR(type.st_mode))
     {
-      if(argv[1][0] == '-')
+      if(flag == 'c' || 'r' || 'v')
       {
-        if(argv[1][1])
-        {
-          flag = argv[1][1];
-        }
-        else
-        {
-          printf("ERROR: Incorrect flag");
-          return 1;
-        }
-        if(flag == 'c' || 'r' || 'v')
-        {
-          search_directory(argv[3], argv[2], flag);
-        }
-        else
-        {
-          printf("ERROR: Incorrect flag");
-        }
+        search_directory(argv[3], argv[2], flag);
+      }
+      else
+      {
+        printf("ERROR: Unknown flag");
+        return 1;
       }
     }
     else if(S_ISREG(type.st_mode))
     {
       //printf("Is a file\n");
-
-      if(argv[1][0] == '-')
-      {
-        
-        if(argv[1][1] == 'c')
+        if(flag == 'c')
         {
           search_pattern_case_sens(file, argv[2]);
         }
-        else if(argv[1][1] == 'r')
+        else if(flag == 'r')
         {
           search_pattern_regex(file, argv[2]);
         }
-        else if(argv[1][1] == 'v')
+        else if(flag == 'v')
         {
           search_pattern_inverted(file, argv[2], NULL);
         }
         else
         {
-          printf("ERROR: unknown flag");
+          printf("ERROR: Unknown flag");
           return 1;
         }
       }
-      else 
-      {
-        printf("Usage: %s [flag] <pattern> <filename>\n", argv[0]);
-        return 1;
-      }
-
     }
-}
+
   // If there isn't a flag
 	else
 	{
@@ -269,19 +297,14 @@ int main(int argc, char* argv[])
     else if(S_ISREG(type.st_mode))
     {
       FILE *file = fopen(argv[2], "r");
-
       if(!file)
       {
         printf("ERROR: couldn't open file");
         return 1;
       }
-
       search_pattern(file, argv[1], NULL);
-
       fclose(file);
     }
-
   	return 0;
 	}
-
 }
